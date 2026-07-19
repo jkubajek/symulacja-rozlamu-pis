@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Symulator Rozłamu Prawicy - D'Hondt 2026</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-main: #f4f6f9;
+            --panel-bg: #ffffff;
+            --text-main: #2c3e50;
+            --border-color: #dcdde1;
+            --primary: #4a69bd;
+            --success: #27ae60;
+            --danger: #c0392b;
+            --muted: #7f8c8d;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            margin-bottom: 6px;
+            color: #1e3799;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin-top: 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 980px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+        }
+
+        .control-group {
+            margin-bottom: 22px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        .val-display {
+            float: right;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .mode-select {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--primary);
+            background: #fff;
+            color: var(--primary);
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: 0.2s;
+        }
+
+        .mode-btn.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .summary-box {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border-left: 5px solid #8e44ad;
+            line-height: 1.55;
+        }
+
+        .summary-box h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 720px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #fcfcfd;
+        }
+
+        .chart-title {
+            text-align: center;
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+        }
+
+        .legend-note {
+            font-size: 0.88rem;
+            color: var(--muted);
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .badge-loss { background-color: var(--danger); }
+        .badge-gain { background-color: var(--success); }
+        .badge-neutral { background-color: #95a5a6; }
+        .badge-threshold-ok { background-color: var(--success); }
+        .badge-threshold-no { background-color: var(--danger); }
+
+        .scrollable-table {
+            max-height: 360px;
+            overflow-y: auto;
+            margin-top: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background: #f1f2f6;
+            z-index: 1;
+        }
+
+        th, td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .small-note {
+            color: var(--muted);
+            font-size: 0.88rem;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+
+        .kpi-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .kpi-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .kpi-box {
+            background: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .kpi-box strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        code {
+            background: #eef2f7;
+            padding: 1px 5px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Symulator Rozłamu PiS</h1>
+    </header>
+
+    <div class="grid">
+        <div class="panel">
+            <h3>Parametry symulacji</h3>
+            <hr>
+
+            <div class="control-group">
+                <label>
+                    Wzrost łącznego poparcia prawicy:
+                    <span class="val-display" id="val-synergy">+0.0 pkt</span>
+                </label>
+                <input type="range" id="param-synergy" min="0" max="5" step="0.5" value="0">
+            </div>
+
+            <div class="control-group">
+                <label>
+                    Proporcja podziału (Trzon / Odłam):
+                    <span class="val-display" id="val-split">70 / 30</span>
+                </label>
+                <input type="range" id="param-split" min="50" max="90" step="5" value="70">
+            </div>
+
+            <div class="control-group">
+                <label>Model dystrybucji poparcia w okręgach:</label>
+                <div class="mode-select">
+                    <button class="mode-btn active" id="btn-mode-dynamic" type="button">Regionalny (Dynamiczny)</button>
+                    <button class="mode-btn" id="btn-mode-flat" type="button">Płaski (Jednakowy)</button>
+                </div>
+            </div>
+
+            <div class="summary-box">
+                <h4>Aktualne krajowe poparcie</h4>
+                <div id="national-shares-info"></div>
+            </div>
+
+            <div class="summary-box" style="border-left-color:#2980b9;">
+                <h4>Założenia modelu</h4>
+                <div>
+                    • Baza zjednoczonego PiS liczona jest z tych samych wag okręgowych i tym samym D'Hondtem.<br>
+                    • Próg 5% liczony jest od rzeczywistego udziału krajowego w symulacji.<br>
+                    • Synergia zwiększa łączne poparcie PiS, a konkurencja jest redukowana proporcjonalnie.
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>Podział mandatów w Sejmie (460 mandatów)</h3>
+            <hr>
+
+            <div class="kpi-row">
+                <div class="kpi-box">
+                    <strong>Baza zjednoczonego PiS</strong>
+                    <div id="base-pis-seats">-</div>
+                </div>
+                <div class="kpi-box">
+                    <strong>Łączny wynik rozłamu</strong>
+                    <div id="split-pis-seats">-</div>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h4 class="chart-title">Baza (zjednoczony start)</h4>
+                    <canvas id="chart-base"></canvas>
+                    <div class="legend-note">KO / PiS / KONF / KKP / LEWICA</div>
+                </div>
+                <div class="chart-card">
+                    <h4 class="chart-title">Scenariusz rozłamu</h4>
+                    <canvas id="chart-scen"></canvas>
+                    <div class="legend-note">KO / Trzon PiS / Odłam / KONF / KKP / LEWICA</div>
+                </div>
+            </div>
+
+            <div class="summary-box" id="bilans-box" style="border-left-color:#2980b9; margin-top:18px;"></div>
+
+            <h4 style="margin-top:20px;">Wyniki szczegółowe w okręgach</h4>
+            <div class="scrollable-table">
+                <table id="district-table">
+                    <thead>
+                        <tr>
+                            <th>Nr</th>
+                            <th>Mandaty</th>
+                            <th>Baza PiS</th>
+                            <th>Trzon</th>
+                            <th>Odłam</th>
+                            <th>Suma rozłam</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="small-note">
+                Uwaga: w modelu dynamicznym udział odłamu zmienia się regionalnie według profilu okręgu, ale próg wyborczy pozostaje krajowy.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const okregi = [
+    { nr: 1, mandaty: 12, wagi: { KO: 1.0, PiS: 1.1, KONF: 1.0, KKP: 1.0, LEWICA: 1.0 } },
+    { nr: 2, mandaty: 8, wagi: { KO: 1.2, PiS: 0.8, KONF: 0.9, KKP: 0.9, LEWICA: 1.1 } },
+    { nr: 3, mandaty: 14, wagi: { KO: 1.3, PiS: 0.7, KONF: 1.0, KKP: 1.0, LEWICA: 1.2 } },
+    { nr: 4, mandaty: 12, wagi: { KO: 1.2, PiS: 0.8, KONF: 0.9, KKP: 0.9, LEWICA: 1.1 } },
+    { nr: 5, mandaty: 13, wagi: { KO: 1.1, PiS: 0.9, KONF: 1.0, KKP: 1.0, LEWICA: 1.0 } },
+    { nr: 6, mandaty: 15, wagi: { KO: 0.6, PiS: 1.4, KONF: 1.2, KKP: 1.2, LEWICA: 0.8 } },
+    { nr: 7, mandaty: 12, wagi: { KO: 0.5, PiS: 1.5, KONF: 1.2, KKP: 1.2, LEWICA: 0.7 } },
+    { nr: 8, mandaty: 12, wagi: { KO: 1.3, PiS: 0.7, KONF: 0.9, KKP: 0.9, LEWICA: 1.2 } },
+    { nr: 9, mandaty: 10, wagi: { KO: 1.3, PiS: 0.7, KONF: 0.8, KKP: 0.8, LEWICA: 1.3 } },
+    { nr: 10, mandaty: 9, wagi: { KO: 0.6, PiS: 1.4, KONF: 1.1, KKP: 1.1, LEWICA: 0.8 } },
+    { nr: 11, mandaty: 12, wagi: { KO: 0.7, PiS: 1.3, KONF: 1.0, KKP: 1.0, LEWICA: 0.9 } },
+    { nr: 12, mandaty: 8, wagi: { KO: 0.8, PiS: 1.3, KONF: 1.0, KKP: 1.0, LEWICA: 0.9 } },
+    { nr: 13, mandaty: 14, wagi: { KO: 1.3, PiS: 0.7, KONF: 1.0, KKP: 1.0, LEWICA: 1.2 } },
+    { nr: 14, mandaty: 10, wagi: { KO: 0.5, PiS: 1.6, KONF: 1.3, KKP: 1.3, LEWICA: 0.6 } },
+    { nr: 15, mandaty: 9, wagi: { KO: 0.6, PiS: 1.4, KONF: 1.2, KKP: 1.2, LEWICA: 0.8 } },
+    { nr: 16, mandaty: 10, wagi: { KO: 0.8, PiS: 1.2, KONF: 1.0, KKP: 1.0, LEWICA: 0.9 } },
+    { nr: 17, mandaty: 9, wagi: { KO: 0.7, PiS: 1.3, KONF: 1.1, KKP: 1.1, LEWICA: 0.9 } },
+    { nr: 18, mandaty: 12, wagi: { KO: 0.6, PiS: 1.4, KONF: 1.2, KKP: 1.2, LEWICA: 0.7 } },
+    { nr: 19, mandaty: 20, wagi: { KO: 1.4, PiS: 0.6, KONF: 0.9, KKP: 0.9, LEWICA: 1.4 } },
+    { nr: 20, mandaty: 12, wagi: { KO: 1.1, PiS: 0.9, KONF: 1.1, KKP: 1.1, LEWICA: 1.1 } },
+    { nr: 21, mandaty: 12, wagi: { KO: 1.2, PiS: 0.8, KONF: 1.0, KKP: 1.0, LEWICA: 1.0 } },
+    { nr: 22, mandaty: 11, wagi: { KO: 0.5, PiS: 1.6, KONF: 1.3, KKP: 1.3, LEWICA: 0.7 } },
+    { nr: 23, mandaty: 15, wagi: { KO: 0.6, PiS: 1.5, KONF: 1.3, KKP: 1.3, LEWICA: 0.8 } },
+    { nr: 24, mandaty: 14, wagi: { KO: 0.7, PiS: 1.3, KONF: 1.2, KKP: 1.2, LEWICA: 0.9 } },
+    { nr: 25, mandaty: 12, wagi: { KO: 1.4, PiS: 0.7, KONF: 0.9, KKP: 0.9, LEWICA: 1.2 } },
+    { nr: 26, mandaty: 14, wagi: { KO: 1.3, PiS: 0.8, KONF: 0.9, KKP: 0.9, LEWICA: 1.1 } },
+    { nr: 27, mandaty: 9, wagi: { KO: 1.0, PiS: 1.1, KONF: 1.0, KKP: 1.0, LEWICA: 1.0 } },
+    { nr: 28, mandaty: 7, wagi: { KO: 1.0, PiS: 1.0, KONF: 0.9, KKP: 0.9, LEWICA: 1.1 } },
+    { nr: 29, mandaty: 9, wagi: { KO: 1.2, PiS: 0.9, KONF: 0.9, KKP: 0.9, LEWICA: 1.1 } },
+    { nr: 30, mandaty: 9, wagi: { KO: 0.9, PiS: 1.1, KONF: 1.1, KKP: 1.1, LEWICA: 1.0 } },
+    { nr: 31, mandaty: 12, wagi: { KO: 1.2, PiS: 0.8, KONF: 0.9, KKP: 0.9, LEWICA: 1.1 } },
+    { nr: 32, mandaty: 9, wagi: { KO: 1.1, PiS: 0.8, KONF: 0.8, KKP: 0.8, LEWICA: 1.2 } },
+    { nr: 33, mandaty: 16, wagi: { KO: 0.7, PiS: 1.4, KONF: 1.0, KKP: 1.0, LEWICA: 0.9 } },
+    { nr: 34, mandaty: 8, wagi: { KO: 1.1, PiS: 0.9, KONF: 1.0, KKP: 1.0, LEWICA: 1.0 } },
+    { nr: 35, mandaty: 10, wagi: { KO: 1.2, PiS: 0.8, KONF: 1.0, KKP: 1.0, LEWICA: 1.1 } },
+    { nr: 36, mandaty: 12, wagi: { KO: 1.0, PiS: 1.0, KONF: 1.0, KKP: 1.0, LEWICA: 1.0 } },
+    { nr: 37, mandaty: 9, wagi: { KO: 0.9, PiS: 1.2, KONF: 1.0, KKP: 1.0, LEWICA: 0.9 } },
+    { nr: 38, mandaty: 9, wagi: { KO: 1.2, PiS: 0.9, KONF: 0.9, KKP: 0.9, LEWICA: 1.1 } },
+    { nr: 39, mandaty: 10, wagi: { KO: 1.4, PiS: 0.6, KONF: 0.9, KKP: 0.9, LEWICA: 1.3 } },
+    { nr: 40, mandaty: 8, wagi: { KO: 1.3, PiS: 0.8, KONF: 0.9, KKP: 0.9, LEWICA: 1.1 } },
+    { nr: 41, mandaty: 12, wagi: { KO: 1.3, PiS: 0.7, KONF: 0.9, KKP: 0.9, LEWICA: 1.2 } }
+];
+
+const bazaSondazowa = {
+    KO: 32.31,
+    PiS: 25.41,
+    KONF: 15.11,
+    KKP: 9.75,
+    LEWICA: 8.32
+};
+
+const kolory = {
+    KO: '#e67e22',
+    PiS: '#2980b9',
+    Trzon_PiS: '#1b4f72',
+    Odlam_M: '#9b59b6',
+    KONF: '#2c3e50',
+    KKP: '#d35400',
+    LEWICA: '#c0392b'
+};
+
+let currentMode = 'dynamic';
+let chartBaseObj = null;
+let chartScenObj = null;
+
+function obliczDHondt(lokalnePoparcie, liczbaMandatow) {
+    const ilorazy = [];
+
+    for (const partia in lokalnePoparcie) {
+        for (let i = 1; i <= liczbaMandatow; i++) {
+            ilorazy.push({
+                partia,
+                wartosc: lokalnePoparcie[partia] / i
+            });
+        }
+    }
+
+    ilorazy.sort((a, b) => b.wartosc - a.wartosc);
+
+    const mandaty = {};
+    for (const partia in lokalnePoparcie) {
+        mandaty[partia] = 0;
+    }
+
+    for (let i = 0; i < liczbaMandatow; i++) {
+        mandaty[ilorazy[i].partia]++;
+    }
+
+    return mandaty;
+}
+
+function obliczBazeZjednoczona() {
+    const globalneMandaty = { KO: 0, PiS: 0, KONF: 0, KKP: 0, LEWICA: 0 };
+    const szczegolyOkregow = [];
+
+    okregi.forEach(o => {
+        const lokalne = {
+            KO: bazaSondazowa.KO * o.wagi.KO,
+            PiS: bazaSondazowa.PiS * o.wagi.PiS,
+            KONF: bazaSondazowa.KONF * o.wagi.KONF,
+            KKP: bazaSondazowa.KKP * o.wagi.KKP,
+            LEWICA: bazaSondazowa.LEWICA * o.wagi.LEWICA
+        };
+
+        const m = obliczDHondt(lokalne, o.mandaty);
+
+        for (const p in globalneMandaty) {
+            globalneMandaty[p] += m[p] || 0;
+        }
+
+        szczegolyOkregow.push({
+            nr: o.nr,
+            mandatyPiS: m.PiS || 0
+        });
+    });
+
+    return {
+        globalne: globalneMandaty,
+        okregi: szczegolyOkregow
+    };
+}
+
+const bazaZjednoczona = obliczBazeZjednoczona();
+
+function formatPct(x) {
+    return `${x.toFixed(2)}%`;
+}
+
+function statusProgu(ok) {
+    return ok
+        ? '<span class="badge badge-threshold-ok">próg 5%: TAK</span>'
+        : '<span class="badge badge-threshold-no">próg 5%: NIE</span>';
+}
+
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('btn-mode-dynamic').classList.toggle('active', mode === 'dynamic');
+    document.getElementById('btn-mode-flat').classList.toggle('active', mode === 'flat');
+    przeliczSymulacje();
+}
+
+function policzPoparcieKrajowe(synergy, splitTrzon) {
+    const splitOdlam = 1 - splitTrzon;
+    const calkowitePiS = bazaSondazowa.PiS + synergy;
+
+    const sumaKonkurencji =
+        bazaSondazowa.KO +
+        bazaSondazowa.KONF +
+        bazaSondazowa.KKP +
+        bazaSondazowa.LEWICA;
+
+    const wspRedukcji = (sumaKonkurencji - synergy) / sumaKonkurencji;
+
+    const popKrajowe = {
+        KO: bazaSondazowa.KO * wspRedukcji,
+        KONF: bazaSondazowa.KONF * wspRedukcji,
+        KKP: bazaSondazowa.KKP * wspRedukcji,
+        LEWICA: bazaSondazowa.LEWICA * wspRedukcji,
+        Trzon_PiS: calkowitePiS * splitTrzon,
+        Odlam_M: calkowitePiS * splitOdlam
+    };
+
+    const sumaWszystkich =
+        popKrajowe.KO +
+        popKrajowe.KONF +
+        popKrajowe.KKP +
+        popKrajowe.LEWICA +
+        popKrajowe.Trzon_PiS +
+        popKrajowe.Odlam_M;
+
+    const udzialTrzon = (popKrajowe.Trzon_PiS / sumaWszystkich) * 100;
+    const udzialOdlam = (popKrajowe.Odlam_M / sumaWszystkich) * 100;
+
+    return {
+        popKrajowe,
+        calkowitePiS,
+        udzialTrzon,
+        udzialOdlam,
+        progTrzonPrzeszedl: udzialTrzon >= 5.0,
+        progOdlamPrzeszedl: udzialOdlam >= 5.0
+    };
+}
+
+function przeliczSymulacje() {
+    const synergy = parseFloat(document.getElementById('param-synergy').value);
+    const splitTrzon = parseFloat(document.getElementById('param-split').value) / 100;
+    const splitOdlam = 1 - splitTrzon;
+
+    document.getElementById('val-synergy').innerText = `+${synergy.toFixed(1)} pkt`;
+    document.getElementById('val-split').innerText = `${Math.round(splitTrzon * 100)} / ${Math.round(splitOdlam * 100)}`;
+
+    const {
+        popKrajowe,
+        calkowitePiS,
+        udzialTrzon,
+        udzialOdlam,
+        progTrzonPrzeszedl,
+        progOdlamPrzeszedl
+    } = policzPoparcieKrajowe(synergy, splitTrzon);
+
+    document.getElementById('national-shares-info').innerHTML = `
+        • <b>KO:</b> ${formatPct(popKrajowe.KO)}<br>
+        • <b>Konfederacja:</b> ${formatPct(popKrajowe.KONF)}<br>
+        • <b>KKP:</b> ${formatPct(popKrajowe.KKP)}<br>
+        • <b>Lewica:</b> ${formatPct(popKrajowe.LEWICA)}<br>
+        • <b>Trzon PiS:</b> ${formatPct(popKrajowe.Trzon_PiS)} &nbsp; ${statusProgu(progTrzonPrzeszedl)}<br>
+        • <b>Odłam:</b> ${formatPct(popKrajowe.Odlam_M)} &nbsp; ${statusProgu(progOdlamPrzeszedl)}<br>
+        <div style="margin-top:8px; color:#7f8c8d; font-size:0.9em;">
+            Udział krajowy po normalizacji: Trzon = ${udzialTrzon.toFixed(2)}%, Odłam = ${udzialOdlam.toFixed(2)}%<br>
+            Suma prawicy po synergii: <b>${formatPct(calkowitePiS)}</b>
+        </div>
+    `;
+
+    const mandatyScenariusz = {
+        KO: 0,
+        Trzon_PiS: 0,
+        Odlam_M: 0,
+        KONF: 0,
+        KKP: 0,
+        LEWICA: 0
+    };
+
+    let tabelaHtml = '';
+
+    okregi.forEach((o, index) => {
+        const lokKO = popKrajowe.KO * o.wagi.KO;
+        const lokKONF = popKrajowe.KONF * o.wagi.KONF;
+        const lokKKP = popKrajowe.KKP * o.wagi.KKP;
+        const lokLEW = popKrajowe.LEWICA * o.wagi.LEWICA;
+        const lokSumaPiS = calkowitePiS * o.wagi.PiS;
+
+        let lokTrzon = 0;
+        let lokOdlam = 0;
+
+        if (currentMode === 'dynamic') {
+            const profil = (o.wagi.KO - o.wagi.PiS) / (o.wagi.KO + o.wagi.PiS);
+            let dynamicznyOdsetekOdlamu = splitOdlam + (0.15 * profil);
+            dynamicznyOdsetekOdlamu = Math.max(0.05, Math.min(0.95, dynamicznyOdsetekOdlamu));
+
+            lokOdlam = lokSumaPiS * dynamicznyOdsetekOdlamu;
+            lokTrzon = lokSumaPiS * (1 - dynamicznyOdsetekOdlamu);
+        } else {
+            lokTrzon = lokSumaPiS * splitTrzon;
+            lokOdlam = lokSumaPiS * splitOdlam;
+        }
+
+        const lokalne = {
+            KO: lokKO,
+            KONF: lokKONF,
+            KKP: lokKKP,
+            LEWICA: lokLEW,
+            Trzon_PiS: progTrzonPrzeszedl ? lokTrzon : 0,
+            Odlam_M: progOdlamPrzeszedl ? lokOdlam : 0
+        };
+
+        const m = obliczDHondt(lokalne, o.mandaty);
+
+        for (const p in mandatyScenariusz) {
+            mandatyScenariusz[p] += m[p] || 0;
+        }
+
+        const sumaRozlam = (m.Trzon_PiS || 0) + (m.Odlam_M || 0);
+        const bazaOkreg = bazaZjednoczona.okregi[index].mandatyPiS;
+        const diff = sumaRozlam - bazaOkreg;
+
+        let statusBadge = '';
+        if (diff === 0) {
+            statusBadge = `<span class="badge badge-neutral">0</span>`;
+        } else if (diff > 0) {
+            statusBadge = `<span class="badge badge-gain">+${diff}</span>`;
+        } else {
+            statusBadge = `<span class="badge badge-loss">${diff}</span>`;
+        }
+
+        tabelaHtml += `
+            <tr>
+                <td>${o.nr}</td>
+                <td>${o.mandaty}</td>
+                <td><b>${bazaOkreg}</b></td>
+                <td>${m.Trzon_PiS || 0}</td>
+                <td>${m.Odlam_M || 0}</td>
+                <td><b>${sumaRozlam}</b></td>
+                <td>${statusBadge}</td>
+            </tr>
+        `;
+    });
+
+    document.querySelector('#district-table tbody').innerHTML = tabelaHtml;
+
+    const sumaPrawicyScenariusz = mandatyScenariusz.Trzon_PiS + mandatyScenariusz.Odlam_M;
+    const bilans = sumaPrawicyScenariusz - bazaZjednoczona.globalne.PiS;
+
+    document.getElementById('base-pis-seats').innerHTML = `<b>${bazaZjednoczona.globalne.PiS}</b> mandatów`;
+    document.getElementById('split-pis-seats').innerHTML = `<b>${sumaPrawicyScenariusz}</b> mandatów`;
+
+    const bilansBox = document.getElementById('bilans-box');
+
+    if (bilans >= 0) {
+        bilansBox.style.borderLeftColor = '#27ae60';
+        bilansBox.innerHTML = `
+            <strong>Wynik operacji: <span style="color:#27ae60;">ZYSK</span></strong><br>
+            Połączone frakcje zdobywają razem <b>${sumaPrawicyScenariusz}</b> mandatów.
+            W porównaniu do bazy zjednoczonej (${bazaZjednoczona.globalne.PiS} mandatów)
+            oznacza to zmianę o <span class="badge badge-gain">+${bilans}</span>.
+        `;
+    } else {
+        bilansBox.style.borderLeftColor = '#c0392b';
+        bilansBox.innerHTML = `
+            <strong>Wynik operacji: <span style="color:#c0392b;">STRATA</span></strong><br>
+            Połączone frakcje zdobywają razem <b>${sumaPrawicyScenariusz}</b> mandatów.
+            W porównaniu do bazy zjednoczonej (${bazaZjednoczona.globalne.PiS} mandatów)
+            oznacza to zmianę o <span class="badge badge-loss">${bilans}</span>.
+        `;
+    }
+
+    updateCharts(mandatyScenariusz);
+}
+
+function updateCharts(scenMandaty) {
+    const baseData = [
+        bazaZjednoczona.globalne.KO,
+        bazaZjednoczona.globalne.PiS,
+        bazaZjednoczona.globalne.KONF,
+        bazaZjednoczona.globalne.KKP,
+        bazaZjednoczona.globalne.LEWICA
+    ];
+
+    if (chartBaseObj) {
+        chartBaseObj.data.datasets[0].data = baseData;
+        chartBaseObj.update();
+    } else {
+        chartBaseObj = new Chart(document.getElementById('chart-base').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['KO', 'PiS (zjedn.)', 'KONF', 'KKP', 'LEWICA'],
+                datasets: [{
+                    data: baseData,
+                    backgroundColor: [
+                        kolory.KO,
+                        kolory.PiS,
+                        kolory.KONF,
+                        kolory.KKP,
+                        kolory.LEWICA
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    const scenData = [
+        scenMandaty.KO,
+        scenMandaty.Trzon_PiS,
+        scenMandaty.Odlam_M,
+        scenMandaty.KONF,
+        scenMandaty.KKP,
+        scenMandaty.LEWICA
+    ];
+
+    if (chartScenObj) {
+        chartScenObj.data.datasets[0].data = scenData;
+        chartScenObj.update();
+    } else {
+        chartScenObj = new Chart(document.getElementById('chart-scen').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['KO', 'Trzon PiS', 'Odłam', 'KONF', 'KKP', 'LEWICA'],
+                datasets: [{
+                    data: scenData,
+                    backgroundColor: [
+                        kolory.KO,
+                        kolory.PiS,
+                        kolory.Odlam_M,
+                        kolory.KONF,
+                        kolory.KKP,
+                        kolory.LEWICA
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+}
+
+document.getElementById('btn-mode-dynamic').addEventListener('click', () => setMode('dynamic'));
+document.getElementById('btn-mode-flat').addEventListener('click', () => setMode('flat'));
+document.getElementById('param-synergy').addEventListener('input', przeliczSymulacje);
+document.getElementById('param-split').addEventListener('input', przeliczSymulacje);
+
+przeliczSymulacje();
+</script>
+</body>
+</html>
