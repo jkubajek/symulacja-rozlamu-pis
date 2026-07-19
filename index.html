@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Symulator Rozłamu Prawicy - D'Hondt 2026</title>
+    <title>Symulator Rozłamu PiS</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -253,7 +253,7 @@
 
             <div class="control-group">
                 <label>
-                    Wzrost łącznego poparcia prawicy:
+                    Wzrost łącznego poparcia PiS:
                     <span class="val-display" id="val-synergy">+0.0 pkt</span>
                 </label>
                 <input type="range" id="param-synergy" min="0" max="5" step="0.5" value="0">
@@ -556,7 +556,7 @@ function przeliczSymulacje() {
         • <b>Odłam:</b> ${formatPct(popKrajowe.Odlam_M)} &nbsp; ${statusProgu(progOdlamPrzeszedl)}<br>
         <div style="margin-top:8px; color:#7f8c8d; font-size:0.9em;">
             Udział krajowy po normalizacji: Trzon = ${udzialTrzon.toFixed(2)}%, Odłam = ${udzialOdlam.toFixed(2)}%<br>
-            Suma prawicy po synergii: <b>${formatPct(calkowitePiS)}</b>
+            Suma PiS po synergii: <b>${formatPct(calkowitePiS)}</b>
         </div>
     `;
 
